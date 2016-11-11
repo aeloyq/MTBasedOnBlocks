@@ -1,2 +1,1 @@
-# MT
-machine translation between English to Chinese
+machine translation from English to Chinese
