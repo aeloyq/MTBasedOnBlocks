@@ -92,12 +92,10 @@ class Sampler(SimpleExtension, SamplingBase):
         inp = input_[:input_length]
         print(inp)
         _1, outputs, _2, _3, costs = (self.sampling_fn(inp[None, :]))
-        print(outputs)
         outputs = outputs.flatten()
         costs = costs.T
         sample_length=self._get_true_length(outputs, self.trg_vocab)
         print(outputs)
-        print(self.trg_vocab)
         print("Input : ", self._idx_to_word(input_[:input_length],
                                             self.src_ivocab))
         print("Sample: ", self._idx_to_word(outputs[:sample_length],
@@ -125,10 +123,6 @@ class Sampler(SimpleExtension, SamplingBase):
         # Randomly select source samples from the current batch
         # WARNING: Source and target indices from data stream
         #  can be different
-        print('apple/r/n/r/n/r/n')
-        print(self.src_vocab['<S>'])
-        print(self.src_vocab['</S>'])
-        print(self.src_vocab['<UNK>'])
         batch = args[0]
         batch_size = batch['source'].shape[0]
         hook_samples = min(batch_size, self.hook_samples)
