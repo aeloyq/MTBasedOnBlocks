@@ -79,10 +79,14 @@ class _oov_to_unk(object):
         self.unk_id = unk_id
 
     def __call__(self, sentence_pair):
-        return ([x if x < self.src_vocab_size else self.unk_id
-                 for x in sentence_pair[0]],
-                [x if x < self.trg_vocab_size else self.unk_id
-                 for x in sentence_pair[1]])
+        if len(sentence_pair)>1:
+            return ([x if x < self.src_vocab_size else self.unk_id
+                     for x in sentence_pair[0]],
+                    [x if x < self.trg_vocab_size else self.unk_id
+                     for x in sentence_pair[1]])
+        else:
+            return ([x if x < self.src_vocab_size else self.unk_id
+                     for x in sentence_pair[0]])
 
 
 class _too_long(object):
@@ -158,13 +162,13 @@ def get_dev_stream(val_set=None, src_vocab=None, src_vocab_size=200000,
     if val_set is not None and src_vocab is not None:
         src_vocab = _ensure_special_tokens(
             src_vocab if isinstance(src_vocab, dict) else
-            cPickle.load(open(src_vocab,'rb')),
+            cPickle.load(open(src_vocab)),
             bos_idx=0, eos_idx=src_vocab_size - 1, unk_idx=unk_id)
         dev_dataset = TextFile([val_set], src_vocab, None)
         dev_stream = DataStream(dev_dataset)
     return dev_stream
     
-def get_test_stream(test_set=None, src_vocab=None, src_vocab_size=200000, trg_vocab_size=6540
+def get_test_stream(test_set=None, src_vocab=None, trg_vocab=None, src_vocab_size=200000, trg_vocab_size=6540
                 , unk_id=1, sort_k_batches=12):
     """Prepares the testing data stream."""
     # Load dictionaries and ensure special tokens exist
@@ -172,9 +176,17 @@ def get_test_stream(test_set=None, src_vocab=None, src_vocab_size=200000, trg_vo
         src_vocab if isinstance(src_vocab, dict)
         else cPickle.load(open(src_vocab,'rb')),
         bos_idx=0, eos_idx=src_vocab_size - 1, unk_idx=unk_id)
+    trg_vocab = _ensure_special_tokens(
+        trg_vocab if isinstance(trg_vocab, dict) else
+        cPickle.load(open(trg_vocab,'rb')),
+        bos_idx=0, eos_idx=trg_vocab_size - 1, unk_idx=unk_id)
     # Get text files from both source and target
     src_dataset = TextFile([test_set], src_vocab, None)
-    stream=src_dataset.get_example_stream()
+    trg_dataset = TextFile(['./data/test.zh'], trg_vocab, None)
+    # Merge them to get a source, target pair
+    stream = Merge([src_dataset.get_example_stream(),
+                    trg_dataset.get_example_stream()],
+                   ('source', 'target'))
     # Replace out of vocabulary tokens with unk token
     stream = Mapping(stream,
                      _oov_to_unk())
